@@ -11,16 +11,16 @@ dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 table = dynamodb.Table('HotDogRatings')
 
 def create_hotdog():
-    title = input("Enter Hot Dog Type: ").strip()
+    name = input("Enter Hot Dog Type: ").strip()
 
-    if not title:
+    if not name:
         print("Hot Dog Type cannot be empty")
         return
 
     calories_input = input("Enter Calories (or leave blank): ").strip()
     rating_input = input("Enter starting rating (or leave blank): ").strip()
 
-    item = {"Name": title}
+    item = {"Name": name}
 
     if calories_input:
         try:
@@ -41,11 +41,11 @@ def create_hotdog():
     print("Hot Dog created")
 
 def print_hotdog(hotdog):
-    title = hotdog.get("Title", "Unknown Title")
+    name = hotdog.get("Title", "Unknown Title")
     calories = hotdog.get("Calories", "Unknown Calorie count")
     ratings = hotdog.get("Ratings", [])
 
-    print(f"Name: {title}")
+    print(f"Name: {name}")
     print(f"Calorie Count: {calories}")
     print(f"Ratings: {ratings}")
     print()
@@ -62,10 +62,10 @@ def print_all_HotDogs():
 
 def update_rating():
     try:
-        title = input("Enter hot dog name: ").strip()
+        name = input("Enter hot dog name: ").strip()
         rating = int(input("Enter rating: ").strip())
 
-        response = table.get_item(Key={"Name": title})
+        response = table.get_item(Key={"Name": name})
         hotdog = response.get("Item")
 
         if not hotdog:
@@ -76,7 +76,7 @@ def update_rating():
         current_ratings.append(rating)
 
         table.update_item(
-            Key={"Name": title},
+            Key={"Name": name},
             UpdateExpression="SET Ratings = :r",
             ExpressionAttributeValues={":r": current_ratings}
         )
@@ -86,15 +86,15 @@ def update_rating():
         print("error in updating hot dog rating")
 
 def delete_hotdog():
-    title = input("Enter hot dog name: ").strip()
+    name = input("Enter hot dog name: ").strip()
 
-    table.delete_item(Key={"Name": title})
+    table.delete_item(Key={"Name": name})
     print("hot dog deleted")
 
 def query_hotdog():
-    title = input("Enter hot dog name: ").strip()
+    name = input("Enter hot dog name: ").strip()
 
-    response = table.get_item(Key={"Name": title})
+    response = table.get_item(Key={"Name": name})
     hotdog = response.get("Item")
 
     if not hotdog:
@@ -108,7 +108,7 @@ def query_hotdog():
         return
 
     avg_rating = sum(ratings) / len(ratings)
-    print(f"Average rating for {title}: {avg_rating}")
+    print(f"Average rating for {name}: {avg_rating}")
 
 def print_menu():
     print("----------------------------")
