@@ -1,14 +1,14 @@
 # name: Nick Martin
 # date: 2026/04/02
-# description: Implementation of CRUD operations with DynamoDB — CS178 Lab 10, 
-# proposed score: 5 (out of 5) 
-#Sort function for hotdog dataset
+# description: Implementation of CRUD operations with DynamoDB — CS178 Lab 10
+# proposed score: 5 (out of 5)
+#Hot Dog Ratings table
 
 import boto3
 
-# boto3 uses the credentials configured via `aws configure` on EC2
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 table = dynamodb.Table('HotDogRatings')
+
 
 def create_hotdog():
     name = input("Enter Hot Dog Type: ").strip()
@@ -17,41 +17,38 @@ def create_hotdog():
         print("Hot Dog Type cannot be empty")
         return
 
-    calories_input = input("Enter Calories (or leave blank): ").strip()
-    rating_input = input("Enter starting rating (or leave blank): ").strip()
+    calories_input = input("Enter Calories: ").strip()
+    rating_input = input("Enter rating: ").strip()
 
-    item = {"Name": name}
+    try:
+        calories = int(calories_input)
+        rating = int(rating_input)
+    except ValueError:
+        print("Calories and rating must be numbers")
+        return
 
-    if calories_input:
-        try:
-            item["Calories"] = int(calories_input)
-        except ValueError:
-            print("invalid Calorie Count, skipping Calorie coaunt")
-
-    if rating_input:
-        try:
-            item["Rating"] = [int(rating_input)]
-        except ValueError:
-            print("invalid rating, using empty ratings list")
-            item["Rating"] = []
-    else:
-        item["Rating"] = []
+    item = {
+        "Name": name,
+        "Calories": calories,
+        "Rating": rating
+    }
 
     table.put_item(Item=item)
     print("Hot Dog created")
 
+
 def print_hotdog(hotdog):
-    name = hotdog.get("Title", "Unknown Title")
-    calories = hotdog.get("Calories", "Unknown Calorie count")
-    ratings = hotdog.get("Ratings", [])
+    name = hotdog.get("Name", "Unknown Name")
+    calories = hotdog.get("Calories", "Unknown Calorie Count")
+    rating = hotdog.get("Rating", "No Rating")
 
     print(f"Name: {name}")
     print(f"Calorie Count: {calories}")
-    print(f"Ratings: {ratings}")
+    print(f"Rating: {rating}")
     print()
 
 
-def print_all_HotDogs():
+def print_all_hotdogs():
     response = table.scan()
     items = response.get("Items", [])
 
@@ -60,36 +57,46 @@ def print_all_HotDogs():
     for hotdog in items:
         print_hotdog(hotdog)
 
+
 def update_rating():
     try:
         name = input("Enter hot dog name: ").strip()
-        rating = int(input("Enter rating: ").strip())
+        rating = int(input("Enter new rating: ").strip())
 
         response = table.get_item(Key={"Name": name})
         hotdog = response.get("Item")
 
         if not hotdog:
-            print("error in updating hot dog rating")
+            print("Hot dog not found")
             return
-
-        current_ratings = hotdog.get("Ratings", [])
-        current_ratings.append(rating)
 
         table.update_item(
             Key={"Name": name},
-            UpdateExpression="SET Ratings = :r",
-            ExpressionAttributeValues={":r": current_ratings}
+            UpdateExpression="SET Rating = :r",
+            ExpressionAttributeValues={":r": rating}
         )
 
-        print("rating updated")
-    except:
-        print("error in updating hot dog rating")
+        print("Rating updated")
+
+    except ValueError:
+        print("Rating must be a number")
+    except Exception as e:
+        print(f"Error updating hot dog rating: {e}")
+
 
 def delete_hotdog():
     name = input("Enter hot dog name: ").strip()
 
+    response = table.get_item(Key={"Name": name})
+    hotdog = response.get("Item")
+
+    if not hotdog:
+        print("Hot dog not found")
+        return
+
     table.delete_item(Key={"Name": name})
-    print("hot dog deleted")
+    print("Hot dog deleted")
+
 
 def query_hotdog():
     name = input("Enter hot dog name: ").strip()
@@ -98,37 +105,39 @@ def query_hotdog():
     hotdog = response.get("Item")
 
     if not hotdog:
-        print("hot dog not found")
+        print("Hot dog not found")
         return
 
-    ratings = hotdog.get("Ratings", [])
+    rating = hotdog.get("Rating")
 
-    if not ratings:
-        print("hot dog has no ratings")
+    if rating is None:
+        print("Hot dog has no rating")
         return
 
-    avg_rating = sum(ratings) / len(ratings)
-    print(f"Average rating for {name}: {avg_rating}")
+    print(f"Rating for {name}: {rating}")
+
 
 def print_menu():
     print("----------------------------")
     print("Press C: to CREATE a new hot dog")
     print("Press R: to READ all hot dogs")
-    print("Press U: to UPDATE a hot dog (add a review)")
+    print("Press U: to UPDATE a hot dog rating")
     print("Press D: to DELETE a hot dog")
-    print("Press Q: to QUERY a hot dog's average rating")
+    print("Press Q: to QUERY a hot dog's rating")
     print("Press X: to EXIT application")
     print("----------------------------")
+
 
 def main():
     input_char = ""
     while input_char.upper() != "X":
         print_menu()
-        input_char = input("Choice: ")
+        input_char = input("Choice: ").strip()
+
         if input_char.upper() == "C":
             create_hotdog()
         elif input_char.upper() == "R":
-            print_all_HotDogs()
+            print_all_hotdogs()
         elif input_char.upper() == "U":
             update_rating()
         elif input_char.upper() == "D":
@@ -136,9 +145,10 @@ def main():
         elif input_char.upper() == "Q":
             query_hotdog()
         elif input_char.upper() == "X":
-            print("exiting...")
+            print("Exiting...")
         else:
             print("Not a valid option. Try again.")
+
 
 main()
 
